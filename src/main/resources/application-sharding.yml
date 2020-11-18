@@ -1,0 +1,44 @@
+spring:
+  shardingsphere:
+    datasource:
+      names: master
+      master:
+        type: com.alibaba.druid.pool.DruidDataSource
+        driver-class-name: com.mysql.jdbc.Driver
+        url: jdbc:mysql://localhost:3306/ds0?characterEncoding=utf-8
+        username: root
+        password: password
+    sharding:
+      tables:
+        t_order:
+          actual-data-nodes: master.t_order$->{0..1}
+          ## 指定分表规则
+          table-strategy:
+            inline:
+              sharding-column: order_id
+              algorithm-expression: t_order$->{order_id % 2}
+
+        t_order_item:
+          actual-data-nodes: master.t_order_item$->{0..1}
+          ## 指定分表规则
+          table-strategy:
+            inline:
+              sharding-column: order_id
+              algorithm-expression: t_order_item$->{order_id % 2}
+          ## 生成分布式主键
+          key-generator:
+            column: item_id
+            type: SNOWFLAKE
+
+      ## 绑定主表与子表，避免关联查询导致的全数据源路由
+      binding-tables:
+        - t_order, t_order_item
+
+      ## 配置广播表：以广播的形式保存（如果只涉及查询的话可以不配置，会随机取一个数据源）
+      broadcast-tables: t_config
+
+
+    ## 打印sql
+    props:
+      sql:
+        show: true
